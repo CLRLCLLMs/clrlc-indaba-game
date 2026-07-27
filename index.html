@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CLRLC | The Language Game | Deep Learning Indaba 2026</title>
+<style>html,body{margin:0;padding:0}</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="env,react">
+/* Storage shim for web hosting: persists leaderboard + seen questions in this browser */
+window.storage = {
+  async get(key) {
+    const v = localStorage.getItem("clrlc-" + key);
+    return v === null ? null : { key, value: v };
+  },
+  async set(key, value) {
+    localStorage.setItem("clrlc-" + key, value);
+    return { key, value };
+  },
+};
+
+const { useState, useEffect } = React;
+
+/* ============ CLRLC Indaba Booth Game ============
+   Adire-indigo palette, gold accent, sticker-code masthead.
+   No login: name + languages -> 3 rounds -> score -> live leaderboard.
+*/
+
+const C = {
+  indigoDeep: "#131A45",
+  indigo: "#1E2A6E",
+  indigoSoft: "#2C3A8C",
+  cream: "#F7F3E6",
+  gold: "#F2B33D",
+  coral: "#E8604C",
+  green: "#3FA66A",
+  inkFaint: "rgba(247,243,230,0.55)",
+};
+
+const font = {
+  display: "'Fraunces', Georgia, 'Times New Roman', serif",
+  body: "'Avenir Next', 'Segoe UI', system-ui, sans-serif",
+  mono: "'SFMono-Regular', Consolas, 'Courier New', monospace",
+};
+
+/* ---------------- QUESTION POOLS ---------------- */
+
+const GUESS_LANG = [
+  { text: "Báwo ni? Ṣé dáadáa ni?", options: ["Igbo", "Yorùbá", "Twi", "Hausa"], answer: 1 },
+  { text: "Kedu ka ị mere?", options: ["Igbo", "isiXhosa", "Swahili", "Wolof"], answer: 0 },
+  { text: "Ina kwana? Lafiya lau.", options: ["Amharic", "Fulfulde", "Hausa", "Kanuri"], answer: 2 },
+  { text: "Habari yako, rafiki?", options: ["Lingala", "Swahili", "Shona", "Luganda"], answer: 1 },
+  { text: "Sawubona, unjani?", options: ["isiZulu", "Setswana", "Yorùbá", "Twi"], answer: 0 },
+  { text: "Wo ho te sɛn?", options: ["Ewe", "Ga", "Twi (Akan)", "Dagbani"], answer: 2 },
+  { text: "Dumela, o kae?", options: ["Sesotho/Setswana", "isiNdebele", "Oshiwambo", "Herero"], answer: 0 },
+  { text: "Mbote, sango nini?", options: ["Kikongo", "Lingala", "Tshiluba", "Swahili"], answer: 1 },
+  { text: "How far? Wetin dey happen?", options: ["Krio", "Naija (Pidgin)", "Cameroonian Pidgin", "Jamaican Patois"], answer: 1 },
+  { text: "Molo, kunjani?", options: ["isiXhosa", "isiZulu", "SiSwati", "Sesotho"], answer: 0 },
+  { text: "Akwaaba!", options: ["Ewe", "Hausa", "Twi (Akan)", "Yorùbá"], answer: 2 },
+  { text: "Jambo! Karibu sana.", options: ["Chichewa", "Swahili", "Lingala", "Luganda"], answer: 1 },
+  { text: "Na nga def?", options: ["Bambara", "Fulfulde", "Serer", "Wolof"], answer: 3 },
+  { text: "I ni ce!", options: ["Bambara", "Twi", "Zarma", "Mooré"], answer: 0 },
+  { text: "Muraho! Amakuru?", options: ["Lingala", "Kinyarwanda", "Swahili", "Shona"], answer: 1 },
+  { text: "Mhoroi! Makadii?", options: ["Chichewa", "Setswana", "Shona", "isiNdebele"], answer: 2 },
+  { text: "Selam! Endemin neh?", options: ["Amharic", "Somali", "Oromo", "Swahili"], answer: 0 },
+  { text: "Azul fell-awen!", options: ["Arabic", "Hausa", "Wolof", "Tamazight (Berber)"], answer: 3 },
+  { text: "Oli otya?", options: ["Luganda", "Kinyarwanda", "Swahili", "Acholi"], answer: 0 },
+  { text: "Moni! Muli bwanji?", options: ["Bemba", "Chichewa (Nyanja)", "Shona", "Swahili"], answer: 1 },
+  { text: "Iska warran?", options: ["Amharic", "Afar", "Somali", "Swahili"], answer: 2 },
+  { text: "Lumela! U phela joang?", options: ["Sesotho", "isiZulu", "Xitsonga", "Venda"], answer: 0 },
+  { text: "Avuxeni!", options: ["Sepedi", "isiXhosa", "SiSwati", "Xitsonga"], answer: 3 },
+  { text: "Thobela!", options: ["Setswana", "Sepedi (Northern Sotho)", "Venda", "isiZulu"], answer: 1 },
+  { text: "Ẹ káàárọ̀!", options: ["Igbo", "Edo", "Yorùbá", "Efik"], answer: 2 },
+  { text: "Ndeewo!", options: ["Igbo", "Ibibio", "Tiv", "Idoma"], answer: 0 },
+  { text: "Salibonani!", options: ["Shona", "isiNdebele", "SiSwati", "Sesotho"], answer: 1 },
+  { text: "Mangwanani! Marara sei?", options: ["Shona", "Chichewa", "Bemba", "Xitsonga"], answer: 0 },
+];
+
+const MT_ERRORS = [
+  {
+    src: "How far?  (Naija greeting)",
+    mt: "→  \"What is the distance?\"",
+    right: false,
+    why: "\"How far?\" is a greeting (What's up / how are you?), not a question about distance. The machine translated literally.",
+  },
+  {
+    src: "I love my husband.  →  Yorùbá",
+    mt: "→  \"Mo fẹ́ràn ọkọ̀ mi\"  (I love my vehicle)",
+    right: false,
+    why: "Tone marks matter! ọkọ (husband) vs ọkọ̀ (vehicle) vs ọkọ́ (hoe). The machine picked the wrong tone — a classic low-resource NLP failure.",
+  },
+  {
+    src: "Nina njaa.  (Swahili)",
+    mt: "→  \"I am hungry.\"",
+    right: true,
+    why: "Correct! Nina njaa = I am hungry.",
+  },
+  {
+    src: "It's raining heavily.  →  Yorùbá",
+    mt: "→  \"Òjò ń rọ̀ gidigidi\"",
+    right: true,
+    why: "Correct! Òjò ń rọ̀ = it is raining; gidigidi = heavily/a lot.",
+  },
+  {
+    src: "Break a leg!  →  Naija",
+    mt: "→  \"Go brake your leg!\"",
+    right: false,
+    why: "Idioms don't translate literally. A Naija speaker would say something like \"Goodluck o!\" or \"More grease!\"",
+  },
+  {
+    src: "Agụụ na-agụ m.  (Igbo)",
+    mt: "→  \"Hunger is reading me.\"",
+    right: false,
+    why: "agụ (hunger) vs ịgụ (to read/count) — same-looking stems trip the model. Correct: \"I am hungry.\"",
+  },
+  {
+    src: "Ẹ káàbọ̀!  (Yorùbá)",
+    mt: "→  \"Welcome!\"",
+    right: true,
+    why: "Correct! Ẹ káàbọ̀ greets someone arriving.",
+  },
+  {
+    src: "I dey come.  (Naija)",
+    mt: "→  \"I am arriving right now.\"",
+    right: false,
+    why: "In Naija, 'I dey come' usually means 'I'll be right back' — often said while walking away! Context is everything.",
+  },
+  {
+    src: "Asante sana.  (Swahili)",
+    mt: "→  \"Thank you very much.\"",
+    right: true,
+    why: "Correct! Asante = thank you, sana = very much.",
+  },
+  {
+    src: "Ba ruwana.  (Hausa)",
+    mt: "→  \"I have no water.\"",
+    right: false,
+    why: "Literally 'no my water' — but idiomatically it means 'it's none of my business.' Idioms defeat literal MT.",
+  },
+  {
+    src: "Bịa ebe a.  (Igbo)",
+    mt: "→  \"Come here.\"",
+    right: true,
+    why: "Correct! Bịa = come, ebe a = here / this place.",
+  },
+  {
+    src: "E don tey.  (Naija)",
+    mt: "→  \"It has been a long time.\"",
+    right: true,
+    why: "Correct! 'E don tey' = it's been a while.",
+  },
+  {
+    src: "Shine your eye!  (Naija)",
+    mt: "→  \"Polish your eyeballs.\"",
+    right: false,
+    why: "'Shine your eye' means 'be sharp, stay alert.' The machine went literal — and a bit disturbing.",
+  },
+  {
+    src: "Long throat  (Naija)",
+    mt: "→  \"an elongated oesophagus\"",
+    right: false,
+    why: "'Long throat' means greed or a strong craving — not anatomy!",
+  },
+  {
+    src: "Wahala dey.  (Naija)",
+    mt: "→  \"There is trouble.\"",
+    right: true,
+    why: "Correct! Wahala = trouble/problem.",
+  },
+  {
+    src: "Nimechoka.  (Swahili)",
+    mt: "→  \"I am tired.\"",
+    right: true,
+    why: "Correct! From kuchoka — to be/get tired.",
+  },
+  {
+    src: "Ngiyabonga.  (isiZulu)",
+    mt: "→  \"Thank you.\"",
+    right: true,
+    why: "Correct! ngi- (I) + -bonga (thank, praise).",
+  },
+  {
+    src: "Medaase.  (Twi)",
+    mt: "→  \"Thank you.\"",
+    right: true,
+    why: "Correct! Twi for thank you.",
+  },
+  {
+    src: "Lala salama.  (Swahili)",
+    mt: "→  \"Sleep peacefully / good night.\"",
+    right: true,
+    why: "Correct! A lovely way to say goodnight.",
+  },
+  {
+    src: "He kicked the bucket.  →  Swahili",
+    mt: "→  \"Alipiga ndoo teke\"  (he kicked a bucket)",
+    right: false,
+    why: "The idiom means 'he died.' A literal bucket-kicking translation misses it completely.",
+  },
+];
+
+const NLP_QUIZ = [
+  {
+    q: "What does GPT stand for?",
+    options: ["General Purpose Technology", "Generative Pre-trained Transformer", "Global Prediction Tool", "Gradient Processing Transformer"],
+    answer: 1,
+    why: "Generative Pre-trained Transformer — generative because it produces text, pre-trained on huge corpora, built on the Transformer architecture.",
+  },
+  {
+    q: "The famous 2017 paper \"Attention Is All You Need\" introduced which architecture?",
+    options: ["The RNN", "The CNN", "The Transformer", "Word2Vec"],
+    answer: 2,
+    why: "It introduced the Transformer — the architecture behind GPT, BERT, and today's large language models.",
+  },
+  {
+    q: "GPT-style models are pretrained with which objective?",
+    options: ["Masked language modeling", "Next-token prediction", "Translation pairs", "Sentence classification"],
+    answer: 1,
+    why: "Causal language modeling: predict the next token given everything before it. That simple objective scales into everything else.",
+  },
+  {
+    q: "BERT's main pretraining objective is…",
+    options: ["Next-token prediction", "Masked language modeling", "Reinforcement learning", "Speech recognition"],
+    answer: 1,
+    why: "Masked language modeling — hide random tokens and predict them from both directions (that's the 'bidirectional' in BERT).",
+  },
+  {
+    q: "In Transformer attention, Q, K and V stand for…",
+    options: ["Quality, Knowledge, Vector", "Query, Key, Value", "Quantile, Kernel, Variance", "Question, Keyword, Verb"],
+    answer: 1,
+    why: "Each token issues a Query, is indexed by a Key, and carries a Value — attention scores come from Query·Key matches.",
+  },
+  {
+    q: "What stops a GPT-style decoder from 'seeing the future' during training?",
+    options: ["Dropout", "Layer normalization", "Causal (look-ahead) masking", "Positional encoding"],
+    answer: 2,
+    why: "Causal masking zeroes out attention to future positions, so each token is predicted only from its past.",
+  },
+  {
+    q: "Why do Transformers need positional encodings?",
+    options: ["To make training faster", "Because self-attention alone is order-blind", "To reduce memory use", "To normalize gradients"],
+    answer: 1,
+    why: "Self-attention treats input as a set — without positional information, 'dog bites man' and 'man bites dog' look identical.",
+  },
+  {
+    q: "Roughly how many parameters did GPT-3 have?",
+    options: ["1.5 billion", "13 billion", "175 billion", "1 trillion"],
+    answer: 2,
+    why: "175B parameters — the 2020 model that made 'scaling laws' a household phrase (in some households).",
+  },
+  {
+    q: "In machine translation, BLEU measures…",
+    options: ["Grammar correctness", "N-gram overlap with reference translations", "Translation speed", "Vocabulary size"],
+    answer: 1,
+    why: "BLEU compares n-gram overlap between the system output and human references — imperfect, but still everywhere.",
+  },
+  {
+    q: "What is 'catastrophic forgetting'?",
+    options: ["A model losing earlier abilities when trained on new data", "Deleting a dataset by mistake", "Overfitting to noise", "Running out of GPU memory"],
+    answer: 0,
+    why: "Fine-tune a model on new data and it can overwrite what it knew before — a core challenge in continual learning.",
+  },
+  {
+    q: "The 'curse of multilinguality' refers to…",
+    options: ["Translation being impossible", "Per-language performance dropping as one fixed-size model covers more languages", "Models refusing to code-switch", "Alphabets that can't be tokenized"],
+    answer: 1,
+    why: "With fixed capacity, adding more languages eventually hurts each language's performance — a very real issue for African-language NLP.",
+  },
+  {
+    q: "What does RLHF stand for?",
+    options: ["Recurrent Layers with Hidden Features", "Reinforcement Learning from Human Feedback", "Rapid Language Handling Framework", "Regularized Linear Hyperparameter Fitting"],
+    answer: 1,
+    why: "Reinforcement Learning from Human Feedback — how base LLMs are tuned toward helpful, preferred behaviour.",
+  },
+  {
+    q: "Word2Vec's skip-gram objective trains a model to…",
+    options: ["Predict context words from a target word", "Skip rare words", "Translate word pairs", "Compress documents"],
+    answer: 0,
+    why: "Given a word, predict its neighbours — and the by-product is word vectors where king − man + woman ≈ queen.",
+  },
+  {
+    q: "Perplexity measures…",
+    options: ["How confused human readers are", "How well a language model predicts text (lower is better)", "Vocabulary diversity", "Sentence length"],
+    answer: 1,
+    why: "It's the exponentiated average negative log-likelihood — intuitively, how 'surprised' the model is by the text.",
+  },
+  {
+    q: "Before Transformers, neural MT was dominated by…",
+    options: ["Decision trees", "RNN/LSTM encoder–decoders with attention", "Convolution-only networks", "Rule-based systems only"],
+    answer: 1,
+    why: "Seq2seq LSTMs with attention (2014–2017) — the attention part proved so useful it became the whole architecture.",
+  },
+  {
+    q: "'Hallucination' in LLMs means…",
+    options: ["Producing fluent but false or unsupported content", "Generating images", "Repeating the prompt", "Refusing to answer"],
+    answer: 0,
+    why: "Fluent, confident, wrong — the model generates plausible text unmoored from facts. Especially risky in low-resource languages.",
+  },
+  {
+    q: "Zero-shot cross-lingual transfer means a model…",
+    options: ["Translates without training", "Performs a task in a language it saw no labeled task data for", "Ignores language entirely", "Uses zero parameters per language"],
+    answer: 1,
+    why: "Train the task in English, run it in Yorùbá — multilingual pretraining makes the skill (partially) carry across languages.",
+  },
+  {
+    q: "NLLB, Meta's 200-language translation project, stands for…",
+    options: ["Neural Language Learning Base", "No Language Left Behind", "New Low-Latency BLEU", "Natural Language Lab"],
+    answer: 1,
+    why: "No Language Left Behind — MT for 200+ languages, including dozens of African ones.",
+  },
+  {
+    q: "FLORES-200 is…",
+    options: ["A flower-naming dataset", "A multilingual MT evaluation benchmark spanning 200+ languages", "A GPU cluster", "A tokenizer"],
+    answer: 1,
+    why: "A benchmark of professionally translated sentences used to evaluate translation across 200+ languages.",
+  },
+  {
+    q: "Why do subword tokenizers often hurt African languages?",
+    options: ["African languages have no subwords", "Vocabularies trained mostly on high-resource languages over-fragment them", "Tokenizers can't read UTF-8", "They ignore vowels"],
+    answer: 1,
+    why: "A Yorùbá or Amharic word can shatter into many tokens, making text longer, costlier, and harder to model — a real equity issue.",
+  },
+  {
+    q: "'Few-shot prompting' means…",
+    options: ["Training on a few GPUs", "Giving examples in the prompt with no weight updates", "Fine-tuning for a few steps", "Using short prompts"],
+    answer: 1,
+    why: "Show the model a handful of examples inside the prompt itself — in-context learning, no training required.",
+  },
+  {
+    q: "In NLP, what is a 'corpus'?",
+    options: ["A neural network layer", "A collection of texts used for analysis or training", "A spelling checker", "A type of GPU"],
+    answer: 1,
+    why: "A corpus (plural: corpora!) is a structured collection of texts — the raw material of NLP and corpus linguistics.",
+  },
+  {
+    q: "A 'low-resource language' is one that…",
+    options: ["Has few speakers", "Is hard to pronounce", "Has little digital data and few NLP tools", "Has no writing system"],
+    answer: 2,
+    why: "It's about data, not speakers! Yorùbá has tens of millions of speakers yet is low-resource — exactly the gap CLRLC works on.",
+  },
+  {
+    q: "What is code-switching?",
+    options: ["Changing programming languages", "Mixing two or more languages in one conversation", "Encrypting a message", "Fixing a bug"],
+    answer: 1,
+    why: "Mixing languages mid-conversation or even mid-sentence — 'Abeg, I dey come, mo ń bọ̀!' A big (and understudied) challenge for NLP.",
+  },
+  {
+    q: "Yorùbá is a tonal language. How many basic tones does it have?",
+    options: ["Two", "Three", "Five", "It has no tones"],
+    answer: 1,
+    why: "Three: high (á), mid (a), and low (à). Tone changes meaning — which is why dropped diacritics break NLP models.",
+  },
+  {
+    q: "Roughly how many languages are spoken in Africa?",
+    options: ["Around 200", "Around 500", "Over 2,000", "About 50"],
+    answer: 2,
+    why: "Over 2,000 — about a third of the world's languages, most of them low-resource. Plenty of work for us all!",
+  },
+  {
+    q: "Which grassroots research community focuses on NLP for African languages?",
+    options: ["Masakhane", "OpenAI", "EleutherAI", "BigScience"],
+    answer: 0,
+    why: "Masakhane — isiZulu for 'we build together' — a pan-African open research community for African-language NLP.",
+  },
+  {
+    q: "The word 'Indaba' comes from Zulu and Xhosa. What does it mean?",
+    options: ["A celebration", "A gathering to discuss important matters", "A marketplace", "A song"],
+    answer: 1,
+  },
+  {
+    q: "Roughly how many languages are spoken in Nigeria?",
+    options: ["About 50", "About 150", "Over 500", "Exactly 36"],
+    answer: 2,
+    why: "Over 500 languages — one of the most linguistically diverse countries on Earth.",
+  },
+  {
+    q: "Swahili belongs to which language family branch?",
+    options: ["Bantu (Niger-Congo)", "Semitic", "Cushitic", "Romance"],
+    answer: 0,
+  },
+  {
+    q: "A phoneme is…",
+    options: ["A written letter", "The smallest sound unit that can change meaning", "A type of word", "A tone mark"],
+    answer: 1,
+  },
+  {
+    q: "A parallel corpus contains…",
+    options: ["Two copies of the same text", "Texts paired with their translations", "Only spoken data", "Randomly matched sentences"],
+    answer: 1,
+    why: "Texts aligned with their translations — the fuel of machine translation.",
+  },
+  {
+    q: "BPE, a common tokenization method, stands for…",
+    options: ["Byte-Pair Encoding", "Basic Phrase Extraction", "Binary Parsing Engine", "Best Practice Estimation"],
+    answer: 0,
+  },
+  {
+    q: "Which of these is NOT an African language?",
+    options: ["Wolof", "Tigrinya", "Quechua", "Fulfulde"],
+    answer: 2,
+    why: "Quechua is from the Andes in South America — also low-resource, though!",
+  },
+  {
+    q: "Amharic is written in which script?",
+    options: ["Latin", "Ge'ez (Ethiopic)", "Arabic", "N'Ko"],
+    answer: 1,
+  },
+  {
+    q: "'Ajami' refers to…",
+    options: ["A Yorùbá dialect", "African languages written in adapted Arabic script", "A type of drum", "An MT model"],
+    answer: 1,
+    why: "Ajami — centuries of African-language writing (Hausa, Swahili, Wolof…) in adapted Arabic script.",
+  },
+];
+
+/* ---------------- STORAGE (shared leaderboard) ---------------- */
+
+let memBoard = []; // fallback if artifact storage is unavailable
+const BOARD_KEY = "indaba-leaderboard-v1";
+
+async function loadBoard() {
+  try {
+    const res = await window.storage.get(BOARD_KEY, true);
+    return res ? JSON.parse(res.value) : [];
+  } catch {
+    return memBoard;
+  }
+}
+async function saveEntry(entry) {
+  let board = await loadBoard();
+  board = [...board, entry].sort((a, b) => b.score - a.score).slice(0, 100);
+  try {
+    await window.storage.set(BOARD_KEY, JSON.stringify(board), true);
+  } catch {
+    memBoard = board;
+  }
+  return board;
+}
+
+/* ---------------- HELPERS ---------------- */
+
+const sample = (arr, n) => [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+
+/* Greet players in their own language, based on what they typed at the start */
+const GREETINGS = [
+  { match: ["yoruba", "yor\u00f9b\u00e1", "yoruba"], text: "\u1eb8 k\u00fa i\u1e63\u1eb9\u0301" },
+  { match: ["igbo"], text: "I meela" },
+  { match: ["hausa"], text: "Sannu da aiki" },
+  { match: ["swahili", "kiswahili"], text: "Hongera" },
+  { match: ["zulu", "isizulu"], text: "Halala" },
+  { match: ["xhosa", "isixhosa"], text: "Halala" },
+  { match: ["pidgin", "naija", "naij\u00e1", "broken"], text: "You do well" },
+  { match: ["twi", "akan", "asante", "fante"], text: "Mo ne adwuma" },
+  { match: ["ga "], text: "Ayekoo" },
+  { match: ["amharic"], text: "Gobez" },
+  { match: ["shona"], text: "Makorokoto" },
+  { match: ["lingala"], text: "Malamu" },
+  { match: ["french", "fran\u00e7ais", "francais"], text: "Bravo" },
+  { match: ["arabic"], text: "Mabrouk" },
+];
+function greetingFor(langs) {
+  const s = " " + (langs || "").toLowerCase() + " ";
+  for (const g of GREETINGS) if (g.match.some((m) => s.includes(m))) return g.text;
+  return "Well done";
+}
+
+/* No-repeat question tracking (per device) */
+const SEEN_KEY = "indaba-seen-v1";
+let memSeen = null;
+async function loadSeen() {
+  try {
+    const r = await window.storage.get(SEEN_KEY);
+    return r ? JSON.parse(r.value) : {};
+  } catch {
+    return memSeen || {};
+  }
+}
+async function saveSeen(seen) {
+  memSeen = seen;
+  try {
+    await window.storage.set(SEEN_KEY, JSON.stringify(seen));
+  } catch {}
+}
+function shuffleOptions(qu) {
+  if (!qu.options || qu.right !== undefined) return qu;
+  const order = qu.options.map((_, i) => i).sort(() => Math.random() - 0.5);
+  return { ...qu, options: order.map((i) => qu.options[i]), answer: order.indexOf(qu.answer) };
+}
+function pickFresh(pool, key, seen, n) {
+  const seenIds = new Set(seen[key] || []);
+  let unseen = pool.map((_, i) => i).filter((i) => !seenIds.has(i));
+  if (unseen.length < n) {
+    unseen = pool.map((_, i) => i); // pool exhausted on this device -> start over
+    seen[key] = [];
+  }
+  const chosen = [...unseen].sort(() => Math.random() - 0.5).slice(0, n);
+  seen[key] = [...(seen[key] || []), ...chosen];
+  return chosen.map((i) => shuffleOptions(pool[i]));
+}
+
+const ROUNDS = [
+  { key: "guess", title: "Guess the Language", blurb: "Which language is this?", pool: GUESS_LANG },
+  { key: "mt", title: "Spot the MT Error", blurb: "Did the machine get it right?", pool: MT_ERRORS },
+  { key: "nlp", title: "NLP & Linguistics", blurb: "Test your NLP knowledge.", pool: NLP_QUIZ },
+];
+
+const TIME_PER_Q = 12; // seconds; full game clock = TIME_PER_Q x TOTAL_Q
+const fmtClock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+const MAX_SCORE = 100;
+const Q_PER_ROUND = 5;
+const TOTAL_Q = ROUNDS.length * Q_PER_ROUND;
+const toPoints = (correct) => Math.round((correct * MAX_SCORE) / TOTAL_Q);
+const PASS_MARK = 70;
+
+/* ---------------- UI ATOMS ---------------- */
+
+function Masthead({ small }) {
+  return (
+    <div style={{ textAlign: "center", marginBottom: small ? 12 : 28 }}>
+      <div
+        style={{
+          fontFamily: font.mono,
+          fontSize: small ? 12 : 14,
+          color: C.inkFaint,
+          lineHeight: 1.7,
+          letterSpacing: "0.02em",
+        }}
+      >
+        <span style={{ color: C.gold }}>language</span>, <span style={{ color: C.gold }}>code</span>,{" "}
+        <span style={{ color: C.gold }}>research</span> = <span style={{ color: C.cream }}>"CL", "R", "LC"</span>
+        <br />
+        print(language + code + research)
+      </div>
+      <div
+        style={{
+          fontFamily: font.display,
+          fontWeight: 700,
+          fontSize: small ? 30 : 44,
+          color: C.cream,
+          letterSpacing: "0.01em",
+          marginTop: 4,
+        }}
+      >
+        CLRLC
+      </div>
+      {!small && (
+        <div style={{ fontFamily: font.body, fontSize: 14, color: C.gold, letterSpacing: "0.22em", textTransform: "uppercase", marginTop: 2 }}>
+          The Language Game · Deep Learning Indaba 2026
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Btn({ children, onClick, kind = "gold", disabled, style }) {
+  const base = {
+    fontFamily: font.body,
+    fontWeight: 700,
+    fontSize: 17,
+    padding: "14px 22px",
+    borderRadius: 14,
+    border: "none",
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.5 : 1,
+    width: "100%",
+    transition: "transform 0.08s ease",
+  };
+  const kinds = {
+    gold: { background: C.gold, color: C.indigoDeep },
+    ghost: { background: "transparent", color: C.cream, border: `2px solid rgba(247,243,230,0.35)` },
+  };
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{ ...base, ...kinds[kind], ...style }}
+      onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
+      onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Card({ children, style }) {
+  return (
+    <div
+      style={{
+        background: "rgba(247,243,230,0.06)",
+        border: "1px solid rgba(247,243,230,0.14)",
+        borderRadius: 18,
+        padding: 22,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Confetti() {
+  const colors = [C.gold, C.coral, C.green, C.cream, "#7A8CE8"];
+  const pieces = Array.from({ length: 36 }, (_, i) => ({
+    left: Math.random() * 100,
+    delay: Math.random() * 1.2,
+    dur: 2.6 + Math.random() * 2,
+    size: 7 + Math.random() * 8,
+    color: colors[i % colors.length],
+    round: Math.random() > 0.5,
+  }));
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 50 }} aria-hidden="true">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: `${p.left}%`,
+            width: p.size,
+            height: p.size * (p.round ? 1 : 0.55),
+            background: p.color,
+            borderRadius: p.round ? "50%" : 2,
+            animation: `clrlcFall ${p.dur}s linear ${p.delay}s 3`,
+            opacity: 0,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- MAIN ---------------- */
+
+function ClrlcIndabaGame() {
+  const [view, setView] = useState("welcome"); // welcome | play | score | board
+  const [name, setName] = useState("");
+  const [langs, setLangs] = useState("");
+  const [roundIdx, setRoundIdx] = useState(0);
+  const [qIdx, setQIdx] = useState(0);
+  const [score, setScore] = useState(0);
+  const [picked, setPicked] = useState(null); // index or true/false for MT
+  const [board, setBoard] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [questions, setQuestions] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    loadBoard().then(setBoard);
+  }, []);
+
+  // Full-game countdown: when it hits zero mid-game, the game ends and the score saves
+  useEffect(() => {
+    if (view !== "play") return;
+    if (timeLeft <= 0) {
+      finishGame(score);
+      return;
+    }
+    const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [view, timeLeft]);
+
+  const startGame = async () => {
+    const seen = await loadSeen();
+    const qs = ROUNDS.map((r) => pickFresh(r.pool, r.key, seen, Q_PER_ROUND));
+    saveSeen(seen);
+    setQuestions(qs);
+    setTimeLeft(TIME_PER_Q * TOTAL_Q);
+    setScore(0);
+    setRoundIdx(0);
+    setQIdx(0);
+    setPicked(null);
+    setView("play");
+  };
+
+  const finishGame = async (finalCorrect) => {
+    setSaving(true);
+    const pts = toPoints(finalCorrect);
+    setScore(pts);
+    const entry = {
+      name: name.trim().slice(0, 24),
+      langs: langs.trim().slice(0, 60),
+      score: pts,
+      ts: Date.now(),
+    };
+    const b = await saveEntry(entry);
+    setBoard(b);
+    setSaving(false);
+    setView("score");
+  };
+
+  /* ---------- shell ---------- */
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: `radial-gradient(circle at 12% 8%, rgba(242,179,61,0.10) 0 2px, transparent 2px) 0 0 / 34px 34px, radial-gradient(circle at 60% 40%, rgba(247,243,230,0.05) 0 1.5px, transparent 1.5px) 0 0 / 22px 22px, linear-gradient(160deg, ${C.indigo} 0%, ${C.indigoDeep} 70%)`,
+        fontFamily: font.body,
+        color: C.cream,
+        display: "flex",
+        justifyContent: "center",
+        padding: "28px 16px 48px",
+      }}
+    >
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&display=swap');
+        input::placeholder{color:rgba(247,243,230,0.4)}
+        button:focus-visible{outline:3px solid ${C.gold};outline-offset:2px}
+        @keyframes clrlcFall{0%{transform:translateY(-8vh) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:0.85}}
+        @keyframes clrlcPop{0%{transform:scale(0.4);opacity:0}70%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+        @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}`}</style>
+
+      <div style={{ width: "100%", maxWidth: 560 }}>
+        {/* ---------- WELCOME ---------- */}
+        {view === "welcome" && (
+          <>
+            <Masthead />
+            <Card>
+              <div style={{ fontFamily: font.display, fontSize: 24, marginBottom: 6 }}>Ready to play?</div>
+              <div style={{ color: C.inkFaint, fontSize: 15, marginBottom: 18, lineHeight: 1.5 }}>
+                15 questions · guess the language, machine-translation fails & NLP trivia. Score {PASS_MARK}+ to pass. You have 3 minutes. Good luck!
+              </div>
+              <label style={{ fontSize: 13, letterSpacing: "0.12em", textTransform: "uppercase", color: C.gold }}>Your name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Chiamaka"
+                style={inputStyle}
+              />
+              <label style={{ fontSize: 13, letterSpacing: "0.12em", textTransform: "uppercase", color: C.gold }}>
+                Language(s) you speak
+              </label>
+              <input
+                value={langs}
+                onChange={(e) => setLangs(e.target.value)}
+                placeholder="e.g. Yorùbá, Naija, English"
+                style={inputStyle}
+              />
+              <Btn onClick={startGame} disabled={!name.trim()}>
+                Start the game
+              </Btn>
+              <div style={{ height: 10 }} />
+              <Btn kind="ghost" onClick={() => setView("board")}>
+                View leaderboard
+              </Btn>
+            </Card>
+          </>
+        )}
+
+        {/* ---------- PLAY ---------- */}
+        {view === "play" && questions && (
+          <PlayRound
+            round={ROUNDS[roundIdx]}
+            roundIdx={roundIdx}
+            q={questions[roundIdx][qIdx]}
+            qIdx={qIdx}
+            total={questions[roundIdx].length}
+            picked={picked}
+            setPicked={setPicked}
+            score={toPoints(score)}
+            clock={fmtClock(timeLeft)}
+            urgent={timeLeft <= 20}
+            onAnswer={(correct) => {
+              if (correct) setScore((s) => s + 1);
+            }}
+            onNext={() => {
+              const isLastQ = qIdx === questions[roundIdx].length - 1;
+              const isLastRound = roundIdx === ROUNDS.length - 1;
+              setPicked(null);
+              if (!isLastQ) setQIdx(qIdx + 1);
+              else if (!isLastRound) {
+                setRoundIdx(roundIdx + 1);
+                setQIdx(0);
+              } else {
+                finishGame(score); // score already includes last answer via onAnswer before onNext
+              }
+            }}
+          />
+        )}
+
+        {/* ---------- SCORE ---------- */}
+        {view === "score" && (
+          <>
+            {score >= PASS_MARK && <Confetti />}
+            <Masthead small />
+            <Card style={{ textAlign: "center", position: "relative", overflow: "hidden" }}>
+              {score >= PASS_MARK && (
+                <div
+                  style={{
+                    display: "inline-block",
+                    background: C.gold,
+                    color: C.indigoDeep,
+                    fontWeight: 800,
+                    fontSize: 15,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    borderRadius: 999,
+                    padding: "7px 18px",
+                    marginBottom: 10,
+                    animation: "clrlcPop 0.5s ease",
+                  }}
+                >
+                  🎉 You passed! 🎉
+                </div>
+              )}
+              <div style={{ fontFamily: font.display, fontSize: 26 }}>{greetingFor(langs)}, {name.trim()}!</div>
+              <div style={{ fontSize: 76, fontFamily: font.display, color: score >= PASS_MARK ? C.gold : C.cream, fontWeight: 700, lineHeight: 1.1 }}>
+                {score}
+              </div>
+              <div style={{ color: C.inkFaint, marginBottom: 8 }}>points · out of {MAX_SCORE} · pass mark {PASS_MARK}</div>
+              <div style={{ fontSize: 15, lineHeight: 1.55, marginBottom: 20 }}>
+                {score >= PASS_MARK
+                  ? "A true language champion! Come and talk to us at the stand, join the CLRLC research group and grab your sticker."
+                  : "So close! Every language counts, and so does every speaker. Ask the team how you can get involved, then try again."}
+              </div>
+              {saving ? (
+                <div style={{ color: C.inkFaint }}>Saving your score…</div>
+              ) : (
+                <>
+                  <Btn onClick={() => setView("board")}>See the leaderboard</Btn>
+                  <div style={{ height: 10 }} />
+                  <Btn kind="ghost" onClick={() => { setName(""); setLangs(""); setView("welcome"); }}>
+                    Next player
+                  </Btn>
+                </>
+              )}
+            </Card>
+          </>
+        )}
+
+        {/* ---------- LEADERBOARD ---------- */}
+        {view === "board" && (
+          <>
+            <Masthead small />
+            <Card>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+                <div style={{ fontFamily: font.display, fontSize: 26 }}>Leaderboard</div>
+                <div style={{ fontSize: 13, color: C.inkFaint }}>{board.length} player{board.length === 1 ? "" : "s"}</div>
+              </div>
+              {board.length === 0 && (
+                <div style={{ color: C.inkFaint, marginBottom: 12 }}>No players yet. Be the first name on the board!</div>
+              )}
+              {board.slice(0, 15).map((e, i) => (
+                <div
+                  key={e.ts + e.name}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    marginBottom: 6,
+                    background: i === 0 ? "rgba(242,179,61,0.16)" : "rgba(247,243,230,0.04)",
+                    border: i === 0 ? `1px solid ${C.gold}` : "1px solid transparent",
+                  }}
+                >
+                  <div style={{ fontFamily: font.display, fontSize: 18, width: 30, color: i < 3 ? C.gold : C.inkFaint }}>{i + 1}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{e.name}</div>
+                    <div style={{ fontSize: 12.5, color: C.inkFaint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {e.langs}
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: font.display, fontSize: 20, color: C.cream }}>{e.score}</div>
+                </div>
+              ))}
+
+              <div style={{ height: 16 }} />
+              <Btn onClick={() => { setName(""); setLangs(""); setView("welcome"); }}>New player</Btn>
+            </Card>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  boxSizing: "border-box",
+  fontFamily: font.body,
+  fontSize: 17,
+  color: C.cream,
+  background: "rgba(19,26,69,0.55)",
+  border: "1.5px solid rgba(247,243,230,0.25)",
+  borderRadius: 12,
+  padding: "13px 14px",
+  margin: "6px 0 16px",
+  outline: "none",
+};
+
+/* ---------------- ROUND VIEW ---------------- */
+
+function PlayRound({ round, roundIdx, q, qIdx, total, picked, setPicked, score, onAnswer, onNext, clock, urgent }) {
+  const answered = picked !== null;
+
+  const isMT = round.key === "mt";
+  const correctIdx = isMT ? (q.right ? 0 : 1) : q.answer;
+  const options = isMT ? ["✔ The machine got it right", "✘ The machine got it wrong"] : q.options;
+  const prompt = round.key === "guess" ? q.text : round.key === "nlp" ? q.q : q.src;
+
+  return (
+    <>
+      <Masthead small />
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.inkFaint, marginBottom: 10 }}>
+        <span>
+          Round {roundIdx + 1}/3 · <span style={{ color: C.gold }}>{round.title}</span>
+        </span>
+        <span>
+          Q{qIdx + 1}/{total} · Score {score} ·{" "}
+          <span style={{ fontWeight: 700, color: urgent ? C.coral : C.gold }}>{clock}</span>
+        </span>
+      </div>
+      <Card>
+        <div style={{ fontFamily: font.display, fontSize: 24, lineHeight: 1.4, marginBottom: 6 }}>{prompt}</div>
+        {isMT && <div style={{ fontFamily: font.mono, fontSize: 17, color: C.gold, marginBottom: 6 }}>{q.mt}</div>}
+        <div style={{ color: C.inkFaint, fontSize: 14, marginBottom: 16 }}>{round.blurb}</div>
+
+        {options.map((opt, i) => {
+          let bg = "rgba(247,243,230,0.07)";
+          let border = "1.5px solid rgba(247,243,230,0.2)";
+          if (answered && i === correctIdx) {
+            bg = "rgba(63,166,106,0.25)";
+            border = `1.5px solid ${C.green}`;
+          } else if (answered && i === picked && picked !== correctIdx) {
+            bg = "rgba(232,96,76,0.22)";
+            border = `1.5px solid ${C.coral}`;
+          }
+          return (
+            <button
+              key={i}
+              disabled={answered}
+              onClick={() => {
+                setPicked(i);
+                onAnswer(i === correctIdx);
+              }}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                fontFamily: font.body,
+                fontSize: 17,
+                color: C.cream,
+                background: bg,
+                border,
+                borderRadius: 12,
+                padding: "13px 15px",
+                marginBottom: 9,
+                cursor: answered ? "default" : "pointer",
+              }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+
+        {answered && (
+          <div style={{ background: "rgba(19,26,69,0.5)", borderRadius: 12, padding: "12px 14px", fontSize: 14.5, lineHeight: 1.55, margin: "6px 0 14px", color: C.cream }}>
+            <span style={{ color: picked === correctIdx ? C.green : C.coral, fontWeight: 700 }}>
+              {picked === -1 ? "Time's up! " : picked === correctIdx ? "Correct! " : "Not quite. "}
+            </span>
+            {round.key === "mt" ? q.why : q.why || `It's ${q.options[q.answer]}.`}
+          </div>
+        )}
+
+        {answered && <Btn onClick={onNext}>{qIdx === total - 1 && roundIdx === ROUNDS.length - 1 ? "Finish & save score" : "Next"}</Btn>}
+      </Card>
+    </>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(<ClrlcIndabaGame />);
+</script>
+</body>
+</html>
