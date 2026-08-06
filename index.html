@@ -65,119 +65,6 @@ const font = {
 
 /* ---------------- QUESTION POOLS ---------------- */
 
-const GUESS_LANG = [{
-  text: "Báwo ni? Ṣé dáadáa ni?",
-  options: ["Igbo", "Yorùbá", "Twi", "Hausa"],
-  answer: 1
-}, {
-  text: "Kedu ka ị mere?",
-  options: ["Igbo", "isiXhosa", "Swahili", "Wolof"],
-  answer: 0
-}, {
-  text: "Ina kwana? Lafiya lau.",
-  options: ["Amharic", "Fulfulde", "Hausa", "Kanuri"],
-  answer: 2
-}, {
-  text: "Habari yako, rafiki?",
-  options: ["Lingala", "Swahili", "Shona", "Luganda"],
-  answer: 1
-}, {
-  text: "Sawubona, unjani?",
-  options: ["isiZulu", "Setswana", "Yorùbá", "Twi"],
-  answer: 0
-}, {
-  text: "Wo ho te sɛn?",
-  options: ["Ewe", "Ga", "Twi (Akan)", "Dagbani"],
-  answer: 2
-}, {
-  text: "Dumela, o kae?",
-  options: ["Sesotho/Setswana", "isiNdebele", "Oshiwambo", "Herero"],
-  answer: 0
-}, {
-  text: "Mbote, sango nini?",
-  options: ["Kikongo", "Lingala", "Tshiluba", "Swahili"],
-  answer: 1
-}, {
-  text: "How far? Wetin dey happen?",
-  options: ["Krio", "Naija (Pidgin)", "Cameroonian Pidgin", "Jamaican Patois"],
-  answer: 1
-}, {
-  text: "Molo, kunjani?",
-  options: ["isiXhosa", "isiZulu", "SiSwati", "Sesotho"],
-  answer: 0
-}, {
-  text: "Akwaaba!",
-  options: ["Ewe", "Hausa", "Twi (Akan)", "Yorùbá"],
-  answer: 2
-}, {
-  text: "Jambo! Karibu sana.",
-  options: ["Chichewa", "Swahili", "Lingala", "Luganda"],
-  answer: 1
-}, {
-  text: "Na nga def?",
-  options: ["Bambara", "Fulfulde", "Serer", "Wolof"],
-  answer: 3
-}, {
-  text: "I ni ce!",
-  options: ["Bambara", "Twi", "Zarma", "Mooré"],
-  answer: 0
-}, {
-  text: "Muraho! Amakuru?",
-  options: ["Lingala", "Kinyarwanda", "Swahili", "Shona"],
-  answer: 1
-}, {
-  text: "Mhoroi! Makadii?",
-  options: ["Chichewa", "Setswana", "Shona", "isiNdebele"],
-  answer: 2
-}, {
-  text: "Selam! Endemin neh?",
-  options: ["Amharic", "Somali", "Oromo", "Swahili"],
-  answer: 0
-}, {
-  text: "Azul fell-awen!",
-  options: ["Arabic", "Hausa", "Wolof", "Tamazight (Berber)"],
-  answer: 3
-}, {
-  text: "Oli otya?",
-  options: ["Luganda", "Kinyarwanda", "Swahili", "Acholi"],
-  answer: 0
-}, {
-  text: "Moni! Muli bwanji?",
-  options: ["Bemba", "Chichewa (Nyanja)", "Shona", "Swahili"],
-  answer: 1
-}, {
-  text: "Iska warran?",
-  options: ["Amharic", "Afar", "Somali", "Swahili"],
-  answer: 2
-}, {
-  text: "Lumela! U phela joang?",
-  options: ["Sesotho", "isiZulu", "Xitsonga", "Venda"],
-  answer: 0
-}, {
-  text: "Avuxeni!",
-  options: ["Sepedi", "isiXhosa", "SiSwati", "Xitsonga"],
-  answer: 3
-}, {
-  text: "Thobela!",
-  options: ["Setswana", "Sepedi (Northern Sotho)", "Venda", "isiZulu"],
-  answer: 1
-}, {
-  text: "Ẹ káàárọ̀!",
-  options: ["Igbo", "Edo", "Yorùbá", "Efik"],
-  answer: 2
-}, {
-  text: "Ndeewo!",
-  options: ["Igbo", "Ibibio", "Tiv", "Idoma"],
-  answer: 0
-}, {
-  text: "Salibonani!",
-  options: ["Shona", "isiNdebele", "SiSwati", "Sesotho"],
-  answer: 1
-}, {
-  text: "Mangwanani! Marara sei?",
-  options: ["Shona", "Chichewa", "Bemba", "Xitsonga"],
-  answer: 0
-}];
 const MT_ERRORS = [{
   src: "How far?  (Naija greeting)",
   mt: "→  \"What is the distance?\"",
@@ -694,26 +581,22 @@ function pickFresh(pool, key, seen, n) {
   return chosen.map(i => shuffleOptions(pool[i]));
 }
 const ROUNDS = [{
-  key: "guess",
-  title: "Guess the Language",
-  blurb: "Which language is this?",
-  pool: GUESS_LANG
-}, {
   key: "mt",
   title: "Spot the MT Error",
   blurb: "Did the machine get it right?",
-  pool: MT_ERRORS
+  pool: MT_ERRORS,
+  n: 5
 }, {
   key: "nlp",
   title: "NLP & Linguistics",
   blurb: "Test your NLP knowledge.",
-  pool: NLP_QUIZ
+  pool: NLP_QUIZ,
+  n: 10
 }];
 const TIME_PER_Q = 12; // seconds; full game clock = TIME_PER_Q x TOTAL_Q
 const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const MAX_SCORE = 100;
-const Q_PER_ROUND = 5;
-const TOTAL_Q = ROUNDS.length * Q_PER_ROUND;
+const TOTAL_Q = ROUNDS.reduce((s, r) => s + r.n, 0);
 const toPoints = correct => Math.round(correct * MAX_SCORE / TOTAL_Q);
 const PASS_MARK = 70;
 
@@ -894,7 +777,7 @@ function ClrlcIndabaGame() {
   }, [view, timeLeft]);
   const startGame = async () => {
     const seen = await loadSeen();
-    const qs = ROUNDS.map(r => pickFresh(r.pool, r.key, seen, Q_PER_ROUND));
+    const qs = ROUNDS.map(r => pickFresh(r.pool, r.key, seen, r.n));
     saveSeen(seen);
     setQuestions(qs);
     setTimeLeft(TIME_PER_Q * TOTAL_Q);
@@ -1188,7 +1071,7 @@ function PlayRound({
   const isMT = round.key === "mt";
   const correctIdx = isMT ? q.right ? 0 : 1 : q.answer;
   const options = isMT ? ["✔ The machine got it right", "✘ The machine got it wrong"] : q.options;
-  const prompt = round.key === "guess" ? q.text : round.key === "nlp" ? q.q : q.src;
+  const prompt = round.key === "nlp" ? q.q : q.src;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Masthead, {
     small: true
   }), /*#__PURE__*/React.createElement("div", {
@@ -1199,7 +1082,7 @@ function PlayRound({
       color: C.inkFaint,
       marginBottom: 10
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Round ", roundIdx + 1, "/3 · ", /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, "Round ", roundIdx + 1, "/", ROUNDS.length, " · ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: C.gold
     }
