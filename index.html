@@ -454,6 +454,129 @@ const NLP_QUIZ = [{
   options: ["A Yorùbá dialect", "African languages written in adapted Arabic script", "A type of drum", "An MT model"],
   answer: 1,
   why: "Ajami — centuries of African-language writing (Hausa, Swahili, Wolof…) in adapted Arabic script."
+}, {
+  q: "What does NLU stand for?",
+  options: ["Natural Language Understanding", "Neural Learning Unit", "New Language Update", "Nonlinear Unification"],
+  answer: 0
+}, {
+  q: "What does NLG stand for?",
+  options: ["Neural Layer Gradient", "Natural Language Generation", "New Linguistic Grammar", "Node Level Graph"],
+  answer: 1
+}, {
+  q: "A model's 'context window' is…",
+  options: ["Its training period", "The maximum amount of text (tokens) it can process at once", "Its user interface", "The GPU memory size"],
+  answer: 1
+}, {
+  q: "In text generation, 'temperature' controls…",
+  options: ["GPU heat", "Training speed", "How random or predictable the output is", "Model size"],
+  answer: 2,
+  why: "Low temperature = safe, predictable text; high temperature = more surprising (and riskier) choices."
+}, {
+  q: "Greedy decoding always…",
+  options: ["Picks the highest-probability next token", "Picks a random token", "Uses the longest word", "Repeats the prompt"],
+  answer: 0
+}, {
+  q: "Beam search keeps…",
+  options: ["One candidate sequence", "Several candidate sequences while decoding", "All possible sequences", "Only nouns"],
+  answer: 1
+}, {
+  q: "An embedding is…",
+  options: ["A compressed file", "A vector representation that captures meaning", "A database index", "A type of GPU"],
+  answer: 1,
+  why: "Words, sentences, even documents become vectors; similar meanings end up close together in the space."
+}, {
+  q: "Cosine similarity between two embeddings measures…",
+  options: ["Their lengths", "How close their meanings/directions are", "Their training dates", "Their token counts"],
+  answer: 1
+}, {
+  q: "POS tagging labels each word with its…",
+  options: ["Sentiment", "Part of speech", "Language", "Frequency"],
+  answer: 1
+}, {
+  q: "Lemmatization reduces a word to…",
+  options: ["Its first letter", "Its dictionary base form", "Its plural", "Its translation"],
+  answer: 1,
+  why: "'ran', 'running', 'runs' all become 'run'. Stemming does something similar but by crude suffix-chopping."
+}, {
+  q: "WER (Word Error Rate) is the standard metric for evaluating…",
+  options: ["Machine translation", "Speech recognition", "Chatbots", "Spelling games"],
+  answer: 1
+}, {
+  q: "chrF, popular for evaluating MT into morphologically rich languages, is based on…",
+  options: ["Word counts", "Character n-gram F-scores", "Human ratings only", "Sentence length"],
+  answer: 1,
+  why: "Character-level matching is fairer to languages with rich morphology, where word-level BLEU underrates good translations."
+}, {
+  q: "Back-translation in MT is a trick to…",
+  options: ["Check spelling", "Create synthetic parallel data from monolingual text", "Reverse a model", "Speed up decoding"],
+  answer: 1,
+  why: "Translate monolingual target-language text back into the source language and train on the pair; a lifeline for low-resource MT."
+}, {
+  q: "'Data augmentation' means…",
+  options: ["Buying more GPUs", "Expanding training data with modified or synthetic examples", "Deleting noisy data", "Encrypting datasets"],
+  answer: 1
+}, {
+  q: "'Diglossia' describes a community that…",
+  options: ["Has no written language", "Uses two language varieties for different social functions", "Speaks only dialects", "Bans code-switching"],
+  answer: 1
+}, {
+  q: "A 'lingua franca' is…",
+  options: ["A French dialect", "A common language used between speakers of different mother tongues", "A secret code", "An extinct language"],
+  answer: 1,
+  why: "Like Swahili in East Africa, Hausa in West Africa, or Nigerian Pidgin across Nigeria."
+}, {
+  q: "'Orthography' refers to a language's…",
+  options: ["Pronunciation", "Writing and spelling system", "Word order", "Politeness rules"],
+  answer: 1
+}, {
+  q: "Which of these letters is NOT in the Yor\u00f9b\u00e1 alphabet?",
+  options: ["gb", "\u1e63", "z", "\u1ecd"],
+  answer: 2,
+  why: "Yor\u00f9b\u00e1 has no c, q, v, x or z; it does have digraph gb and dotted letters like \u1e63 and \u1ecd."
+}, {
+  q: "'Transliteration' means…",
+  options: ["Translating meaning", "Converting text from one script to another", "Summarizing text", "Detecting language"],
+  answer: 1,
+  why: "Writing the same words in a different script, like Amharic in Latin letters. The meaning isn't translated."
+}, {
+  q: "In ML, 'overfitting' means a model…",
+  options: ["Is too large for its GPU", "Does great on training data but poorly on new data", "Trains too slowly", "Uses too many languages"],
+  answer: 1
+}, {
+  q: "Instruction tuning is…",
+  options: ["Writing better prompts", "Fine-tuning a model on instructions and responses so it follows requests", "Tuning GPU clock speed", "Grammar correction"],
+  answer: 1
+}, {
+  q: "RAG stands for…",
+  options: ["Random Answer Generation", "Retrieval-Augmented Generation", "Recurrent Attention Gate", "Ranked Aggregation Graph"],
+  answer: 1,
+  why: "The model retrieves relevant documents first, then generates an answer grounded in them; a standard fix for hallucination."
+}, {
+  q: "A 'benchmark' in NLP is…",
+  options: ["A standardized dataset and tasks for comparing models", "A type of chair", "A GPU test", "A licensing rule"],
+  answer: 0
+}, {
+  q: "AfriBERTa and AfroXLM-R are…",
+  options: ["African fintech apps", "Language models pretrained for African languages", "Translation dictionaries", "Speech datasets"],
+  answer: 1,
+  why: "Pretrained models built to serve African languages; proof that the field is building its own foundations."
+}, {
+  q: "MasakhaNER is…",
+  options: ["A music dataset", "A named-entity recognition dataset for African languages", "A GPU cluster in Kenya", "A translation app"],
+  answer: 1
+}, {
+  q: "The Sapir\u2013Whorf hypothesis concerns…",
+  options: ["Whether language influences thought", "How fast children learn grammar", "Machine translation quality", "The origin of writing"],
+  answer: 0
+}, {
+  q: "'Human-in-the-loop' means…",
+  options: ["A human pretends to be an AI", "Humans review or correct model outputs as part of the workflow", "Models train on human DNA", "A user interface style"],
+  answer: 1
+}, {
+  q: "T5 famously frames every NLP task as…",
+  options: ["Classification", "Text-to-text", "Speech-to-text", "Translation only"],
+  answer: 1,
+  why: "Summarization, translation, QA; all become 'text in, text out' for one model."
 }];
 
 /* ---------------- STORAGE (shared leaderboard) ---------------- */
@@ -831,7 +954,7 @@ function ClrlcIndabaGame() {
       marginBottom: 18,
       lineHeight: 1.5
     }
-  }, "15 questions · guess the language, machine-translation fails & NLP trivia. Score ", PASS_MARK, "+ to pass. You have 3 minutes. Good luck!"), /*#__PURE__*/React.createElement("label", {
+  }, "15 questions · machine-translation fails & NLP trivia. Score ", PASS_MARK, "+ to pass. You have 3 minutes. Good luck!"), /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 13,
       letterSpacing: "0.12em",
