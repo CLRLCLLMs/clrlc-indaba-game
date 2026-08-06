@@ -65,107 +65,6 @@ const font = {
 
 /* ---------------- QUESTION POOLS ---------------- */
 
-const MT_ERRORS = [{
-  src: "How far?  (Naija greeting)",
-  mt: "→  \"What is the distance?\"",
-  right: false,
-  why: "\"How far?\" is a greeting (What's up / how are you?), not a question about distance. The machine translated literally."
-}, {
-  src: "I love my husband.  →  Yorùbá",
-  mt: "→  \"Mo fẹ́ràn ọkọ̀ mi\"  (I love my vehicle)",
-  right: false,
-  why: "Tone marks matter! ọkọ (husband) vs ọkọ̀ (vehicle) vs ọkọ́ (hoe). The machine picked the wrong tone — a classic low-resource NLP failure."
-}, {
-  src: "Nina njaa.  (Swahili)",
-  mt: "→  \"I am hungry.\"",
-  right: true,
-  why: "Correct! Nina njaa = I am hungry."
-}, {
-  src: "It's raining heavily.  →  Yorùbá",
-  mt: "→  \"Òjò ń rọ̀ gidigidi\"",
-  right: true,
-  why: "Correct! Òjò ń rọ̀ = it is raining; gidigidi = heavily/a lot."
-}, {
-  src: "Break a leg!  →  Naija",
-  mt: "→  \"Go brake your leg!\"",
-  right: false,
-  why: "Idioms don't translate literally. A Naija speaker would say something like \"Goodluck o!\" or \"More grease!\""
-}, {
-  src: "Agụụ na-agụ m.  (Igbo)",
-  mt: "→  \"Hunger is reading me.\"",
-  right: false,
-  why: "agụ (hunger) vs ịgụ (to read/count) — same-looking stems trip the model. Correct: \"I am hungry.\""
-}, {
-  src: "Ẹ káàbọ̀!  (Yorùbá)",
-  mt: "→  \"Welcome!\"",
-  right: true,
-  why: "Correct! Ẹ káàbọ̀ greets someone arriving."
-}, {
-  src: "I dey come.  (Naija)",
-  mt: "→  \"I am arriving right now.\"",
-  right: false,
-  why: "In Naija, 'I dey come' usually means 'I'll be right back' — often said while walking away! Context is everything."
-}, {
-  src: "Asante sana.  (Swahili)",
-  mt: "→  \"Thank you very much.\"",
-  right: true,
-  why: "Correct! Asante = thank you, sana = very much."
-}, {
-  src: "Ba ruwana.  (Hausa)",
-  mt: "→  \"I have no water.\"",
-  right: false,
-  why: "Literally 'no my water' — but idiomatically it means 'it's none of my business.' Idioms defeat literal MT."
-}, {
-  src: "Bịa ebe a.  (Igbo)",
-  mt: "→  \"Come here.\"",
-  right: true,
-  why: "Correct! Bịa = come, ebe a = here / this place."
-}, {
-  src: "E don tey.  (Naija)",
-  mt: "→  \"It has been a long time.\"",
-  right: true,
-  why: "Correct! 'E don tey' = it's been a while."
-}, {
-  src: "Shine your eye!  (Naija)",
-  mt: "→  \"Polish your eyeballs.\"",
-  right: false,
-  why: "'Shine your eye' means 'be sharp, stay alert.' The machine went literal — and a bit disturbing."
-}, {
-  src: "Long throat  (Naija)",
-  mt: "→  \"an elongated oesophagus\"",
-  right: false,
-  why: "'Long throat' means greed or a strong craving — not anatomy!"
-}, {
-  src: "Wahala dey.  (Naija)",
-  mt: "→  \"There is trouble.\"",
-  right: true,
-  why: "Correct! Wahala = trouble/problem."
-}, {
-  src: "Nimechoka.  (Swahili)",
-  mt: "→  \"I am tired.\"",
-  right: true,
-  why: "Correct! From kuchoka — to be/get tired."
-}, {
-  src: "Ngiyabonga.  (isiZulu)",
-  mt: "→  \"Thank you.\"",
-  right: true,
-  why: "Correct! ngi- (I) + -bonga (thank, praise)."
-}, {
-  src: "Medaase.  (Twi)",
-  mt: "→  \"Thank you.\"",
-  right: true,
-  why: "Correct! Twi for thank you."
-}, {
-  src: "Lala salama.  (Swahili)",
-  mt: "→  \"Sleep peacefully / good night.\"",
-  right: true,
-  why: "Correct! A lovely way to say goodnight."
-}, {
-  src: "He kicked the bucket.  →  Swahili",
-  mt: "→  \"Alipiga ndoo teke\"  (he kicked a bucket)",
-  right: false,
-  why: "The idiom means 'he died.' A literal bucket-kicking translation misses it completely."
-}];
 const NLP_QUIZ = [{
   q: "What does GPT stand for?",
   options: ["General Purpose Technology", "Generative Pre-trained Transformer", "Global Prediction Tool", "Gradient Processing Transformer"],
@@ -581,17 +480,11 @@ function pickFresh(pool, key, seen, n) {
   return chosen.map(i => shuffleOptions(pool[i]));
 }
 const ROUNDS = [{
-  key: "mt",
-  title: "Spot the MT Error",
-  blurb: "Did the machine get it right?",
-  pool: MT_ERRORS,
-  n: 5
-}, {
   key: "nlp",
   title: "NLP & Linguistics",
   blurb: "Test your NLP knowledge.",
   pool: NLP_QUIZ,
-  n: 10
+  n: 15
 }];
 const TIME_PER_Q = 12; // seconds; full game clock = TIME_PER_Q x TOTAL_Q
 const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -837,7 +730,7 @@ function ClrlcIndabaGame() {
       marginBottom: 18,
       lineHeight: 1.5
     }
-  }, "15 questions · machine-translation fails & NLP trivia. Score ", PASS_MARK, "+ to pass. You have 3 minutes. Good luck!"), /*#__PURE__*/React.createElement("label", {
+  }, "15 questions · NLP & linguistics trivia. Score ", PASS_MARK, "+ to pass. You have 3 minutes. Good luck!"), /*#__PURE__*/React.createElement("label", {
     style: {
       fontSize: 13,
       letterSpacing: "0.12em",
@@ -1068,10 +961,9 @@ function PlayRound({
   urgent
 }) {
   const answered = picked !== null;
-  const isMT = round.key === "mt";
-  const correctIdx = isMT ? q.right ? 0 : 1 : q.answer;
-  const options = isMT ? ["✔ The machine got it right", "✘ The machine got it wrong"] : q.options;
-  const prompt = round.key === "nlp" ? q.q : q.src;
+  const correctIdx = q.answer;
+  const options = q.options;
+  const prompt = q.q;
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Masthead, {
     small: true
   }), /*#__PURE__*/React.createElement("div", {
@@ -1082,7 +974,7 @@ function PlayRound({
       color: C.inkFaint,
       marginBottom: 10
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Round ", roundIdx + 1, "/", ROUNDS.length, " · ", /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, /*#__PURE__*/React.createElement("span", {
     style: {
       color: C.gold
     }
@@ -1098,14 +990,7 @@ function PlayRound({
       lineHeight: 1.4,
       marginBottom: 6
     }
-  }, prompt), isMT && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: font.mono,
-      fontSize: 17,
-      color: C.gold,
-      marginBottom: 6
-    }
-  }, q.mt), /*#__PURE__*/React.createElement("div", {
+  }, prompt), /*#__PURE__*/React.createElement("div", {
     style: {
       color: C.inkFaint,
       fontSize: 14,
@@ -1158,7 +1043,7 @@ function PlayRound({
       color: picked === correctIdx ? C.green : C.coral,
       fontWeight: 700
     }
-  }, picked === -1 ? "Time's up! " : picked === correctIdx ? "Correct! " : "Not quite. "), round.key === "mt" ? q.why : q.why || `It's ${q.options[q.answer]}.`), answered && /*#__PURE__*/React.createElement(Btn, {
+  }, picked === -1 ? "Time's up! " : picked === correctIdx ? "Correct! " : "Not quite. "), q.why || `It's ${options[correctIdx]}.`), answered && /*#__PURE__*/React.createElement(Btn, {
     onClick: onNext
   }, qIdx === total - 1 && roundIdx === ROUNDS.length - 1 ? "Finish & save score" : "Next")));
 }
